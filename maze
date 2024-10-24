@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAZEtical Quest</title> 
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>MAZEtical Quest</h1>
+    <div id="maze-container">
+        <div id="maze">
+            <!-- The maze grid will be designed here -->
+        </div>
+        <div id="info">
+            <p id="question">Solve: <span id="polynomial"></span></p>
+            <input type="text" id="answer" placeholder="Enter your answer">
+            <button id="submit" disabled>Submit Answer</button>
+            <p id="timer">Time left: <span id="time">500</span> seconds</p>
+            <p id="status"></p>
+            <button id="play">Play</button> <!-- Play button added -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #222;
+    color: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+#maze-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#maze {
+    display: grid;
+    grid-template-columns: repeat(7, 40px); /* Adjust the columns based on maze complexity */
+    grid-template-rows: repeat(7, 40px);   /* Adjust the rows based on maze complexity */
+    gap: 2px;
+    margin-bottom: 20px;
+}
+
+.cell {
+    width: 40px;
+    height: 40px;
+    background-color: #555; /* Default cell color */
+    transition: background-color 0.3s;
+}
+
+.wall {
+    background-color: #000; /* Wall color */
+}
+
+.path {
+    background-color: #333; /* Path color */
+}
+
+.start {
+    background-color: red; /* Player starting position color */
+}
+
+.finish {
+    background-color: yellow; /* Finish cell color */
+}
+
+input, button {
+    padding: 10px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+input {
+    width: 200px; /* Input field width */
+}
+
+button {
+    background-color: #444; /* Button color */
+    color: #fff; /* Button text color */
+    cursor: pointer; /* Pointer cursor for buttons */
+}
+
+button:hover {
+    background-color: #666; /* Button hover color */
+}
+
+#status {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #ffcc00; /* Status text color */
+}
+
+
+const maze = [
+  ['S', 1, 1, 0, 1, 1, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 1, 0, 1],
+  [1, 1, 1, 1, 1, 0, 'F'],
+  [0, 0, 0, 0, 1, 1, 1],
+  [1, 1, 1, 0, 1, 1, 1]
+];
+
+const playerPosition = { x: 0, y: 0 };
+let currentQuestionIndex = 0;
+let gameActive = false; // Initially false
+let timeRemaining = 500; // Updated to 500 seconds
+
+// Polynomial Questions (50 easy to moderate questions)
+const questions = [
+  { equation: "x + 3 = 5", answer: "2" },
+  { equation: "2x - 4 = 0", answer: "2" },
+  { equation: "3x = 9", answer: "3" },
+  { equation: "x + 5 = 10", answer: "5" },
+  { equation: "4x - 4 = 0", answer: "1" },
+  { equation: "5 - x = 3", answer: "2" },
+  { equation: "2(x + 1) = 10", answer: "4" },
+  { equation: "x^2 - 1 = 0", answer: "1, -1" },
+  { equation: "x^2 + 4 = 8", answer: "2, -2" },
+  { equation: "3x + 4 = 10", answer: "2" },
+  { equation: "x^2 - 2 = 0", answer: "sqrt(2), -sqrt(2)" },
+  { equation: "4x + 8 = 0", answer: "-2" },
+  { equation: "x^2 - 4 = 0", answer: "2, -2" },
+  { equation: "2x + 2 = 10", answer: "4" },
+  { equation: "5x - 15 = 0", answer: "3" },
+  { equation: "x - 7 = 0", answer: "7" },
+  { equation: "x^2 + 2x - 12 = 0", answer: "3, -4" },
+  { equation: "x + 6 = 0", answer: "-6" },
+  { equation: "3(x - 2) = 0", answer: "2" },
+  { equation: "2x - 10 = 0", answer: "5" },
+  { equation: "x^2 + x = 0", answer: "0, -1" },
+  { equation: "x/3 + 1 = 3", answer: "6" },
+  { equation: "x^2 + 4x + 4 = 0", answer: "-2" },
+  { equation: "4x + 4 = 0", answer: "-1" },
+  { equation: "2x^2 - 8 = 0", answer: "2, -2" },
+  { equation: "x - 4 = 0", answer: "4" },
+  { equation: "5x + 5 = 0", answer: "-1" },
+  { equation: "x^2 - 6 = 0", answer: "sqrt(6), -sqrt(6)" },
+  { equation: "x^2 - 3x = 0", answer: "3, 0" },
+  { equation: "2x + 6 = 0", answer: "-3" },
+  { equation: "3x - 12 = 0", answer: "4" },
+  { equation: "4x - 16 = 0", answer: "4" },
+  { equation: "x + 4 = 8", answer: "4" },
+  { equation: "2(x - 3) = 6", answer: "6" },
+  { equation: "7x = 14", answer: "2" },
+  { equation: "x^2 + 2x - 3 = 0", answer: "1, -3" },
+  { equation: "5 - 2x = 1", answer: "2" },
+  { equation: "3x + 6 = 0", answer: "-2" },
+  { equation: "x^2 - 5x + 6 = 0", answer: "2, 3" },
+  { equation: "2x - 2 = 0", answer: "1" },
+  { equation: "x + 1 = 0", answer: "-1" },
+  { equation: "3x + 1 = 10", answer: "3" },
+  { equation: "x^2 - 9 = 0", answer: "3, -3" },
+  { equation: "2x + 3 = 7", answer: "2" },
+  { equation: "5x - 5 = 0", answer: "1" },
+  { equation: "x^2 + 2x - 12 = 0", answer: "3, -4" },
+  { equation: "6 - 2x = 2", answer: "2" },
+  { equation: "x/4 + 1 = 2", answer: "4" },
+  { equation: "4x = 12", answer: "3" },
+  { equation: "x - 5 = 0", answer: "5" },
+  { equation: "2x^2 + 2x = 0", answer: "0, -1" },
+  { equation: "x^2 - 16 = 0", answer: "4, -4" },
+  { equation: "2(x + 1) = 0", answer: "-1" },
+  { equation: "5 - 3x = 2", answer: "1" },
+  { equation: "x^2 - 4 = 0", answer: "2, -2" },
+  { equation: "10x + 10 = 0", answer: "-1" },
+  { equation: "x^2 + 2x - 8 = 0", answer: "2, -4" },
+  { equation: "2x + 5 = 3", answer: "-1" },
+  { equation: "3x - 2 = 1", answer: "1" },
+  { equation: "7x - 14 = 0", answer: "2" },
+  { equation: "x + 1 = 3", answer: "2" },
+  { equation: "x - 3 = 2", answer: "5" }
+];
+
+let timerInterval;
+
+// Set up the maze
+const mazeElement = document.getElementById('maze');
+
+// Create the maze grid
+function drawMaze() {
+  maze.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      const div = document.createElement('div');
+      div.classList.add('cell');
+      if (cell === 0) {
+        div.classList.add('wall');
+      } else if (cell === 1) {
+        div.classList.add('path');
+      } else if (cell === 'S') {
+        div.classList.add('start');
+      } else if (cell === 'F') {
+        div.classList.add('finish');
+      }
+      mazeElement.appendChild(div);
+    });
+  });
+}
+
+// Start the game
+function startGame() {
+  gameActive = true;
+  currentQuestionIndex = 0;
+  timeRemaining = 500;
+  document.getElementById('time').innerText = timeRemaining;
+  document.getElementById('status').innerText = '';
+  document.getElementById('submit').disabled = false;
+  document.getElementById('play').disabled = true;
+  
+  // Reset the maze display
+  mazeElement.innerHTML = '';
+  drawMaze();
+  
+  // Start the timer
+  timerInterval = setInterval(updateTimer, 1000);
+  
+  // Load a question
+  loadQuestion();
+}
+
+// Load a random question
+function loadQuestion() {
+  if (currentQuestionIndex >= questions.length) {
+    currentQuestionIndex = 0; // Reset if all questions have been used
+  }
+  const randomIndex = Math.floor(Math.random() * questions.length);
+  const selectedQuestion = questions[randomIndex];
+  
+  document.getElementById('polynomial').innerText = selectedQuestion.equation;
+  document.getElementById('answer').value = '';
+}
+
+// Update timer
+function updateTimer() {
+  timeRemaining--;
+  document.getElementById('time').innerText = timeRemaining;
+  
+  if (timeRemaining <= 0) {
+    clearInterval(timerInterval);
+    gameActive = false;
+    document.getElementById('status').innerText = 'Time is up! Game over!';
+    document.getElementById('submit').disabled = true;
+    document.getElementById('play').disabled = false;
+  }
+}
+
+// Submit answer
+document.getElementById('submit').addEventListener('click', () => {
+  const userAnswer = document.getElementById('answer').value;
+  const currentQuestion = questions.find(q => q.equation === document.getElementById('polynomial').innerText);
+  
+  if (userAnswer === currentQuestion.answer) {
+    // Correct answer, allow player to move
+    movePlayer();
+    document.getElementById('status').innerText = 'Correct!';
+    loadQuestion(); // Load a new question
+  } else {
+    // Wrong answer, do not allow player to move
+    document.getElementById('status').innerText = 'Wrong. Try again!';
+  }
+});
+
+// Move the player in the maze
+function movePlayer() {
+  const currentCell = maze[playerPosition.y][playerPosition.x];
+  const nextCell = maze[playerPosition.y][playerPosition.x + 1];
+
+  if (nextCell === 1) { // Check if the next cell is a path
+    playerPosition.x++;
+    updateMaze();
+    checkWin();
+  }
+}
+
+// Update the maze to show player movement
+function updateMaze() {
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach((cell, index) => {
+    const x = index % 7;
+    const y = Math.floor(index / 7);
+    cell.classList.remove('start');
+    if (x === playerPosition.x && y === playerPosition.y) {
+      cell.classList.add('start');
+    }
+  });
+}
+
+// Check for win condition
+function checkWin() {
+  if (maze[playerPosition.y][playerPosition.x] === 'F') {
+    endGame("You win! You've reached the finish!");
+  }
+}
+
+// End the game
+function endGame(message) {
+  gameActive = false;
+  clearInterval(timerInterval);
+  document.getElementById('status').innerText = message;
+  document.getElementById('submit').disabled = true;
+  document.getElementById('play').disabled = false;
+}
+
+// Play button event
+document.getElementById('play').addEventListener('click', startGame);
+
+// Initialize the maze when the page loads
+drawMaze();
